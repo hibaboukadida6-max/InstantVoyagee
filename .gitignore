@@ -1,0 +1,16 @@
+# Node
+**/node_modules
+
+# Builds
+**/dist
+**/dist_electron
+
+# Variables d'environnement
+**/.env
+
+# Uploads
+server/uploads
+
+# Base SQLite locale
+server/prisma/*.db
+server/prisma/*.db-journal
