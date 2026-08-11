@@ -1,9 +1,8 @@
+import "dotenv/config";
 import app from "./app.js";
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(
-    `🚀 InstantVoyagee API démarrée sur http://localhost:${PORT}`
-  );
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 InstantVoyagee API démarrée sur le port ${PORT}`);
 });
