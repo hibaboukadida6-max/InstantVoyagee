@@ -25,18 +25,14 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Autoriser les requêtes sans Origin
-      // Exemple : Postman ou certaines requêtes serveur
       if (!origin) {
         return callback(null, true);
       }
 
-      // Domaines connus
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
 
-      // Autoriser les previews Vercel InstantVoyagee
       if (
         origin.endsWith(".vercel.app") &&
         origin.includes("instant-voyagee")
@@ -73,19 +69,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 /* =========================
-   AUTH
-   IMPORTANT :
-   Le login/register restent
-   accessibles sans JWT.
+   TEST API
 ========================= */
 
-app.use("/api/auth", authRoutes);
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "InstantVoyagee API fonctionne correctement 🚀",
+  });
+});
 
-/* =========================
-   ROUTES PROTEGEES
-   Toutes ces routes
-   nécessitent un JWT.
-========================= */
 app.get("/api", (req, res) => {
   res.json({
     success: true,
@@ -93,6 +86,17 @@ app.get("/api", (req, res) => {
     status: "online",
   });
 });
+
+/* =========================
+   AUTH
+   Pas besoin de JWT
+========================= */
+
+app.use("/api/auth", authRoutes);
+
+/* =========================
+   ROUTES PROTEGEES
+========================= */
 
 app.use(
   "/api/clients",
@@ -117,25 +121,6 @@ app.use(
   authenticateToken,
   uploadRoutes
 );
-
-/* =========================
-   TEST API
-========================= */
-
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "InstantVoyagee API fonctionne correctement 🚀",
-  });
-});
-
-app.get("/api", (req, res) => {
-  res.json({
-    success: true,
-    message: "InstantVoyagee API",
-    status: "online",
-  });
-});
 
 /* =========================
    404
