@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
@@ -18,11 +18,13 @@ import Settings from "./pages/Settings";
 import UploadPassport from "./pages/UploadPassport";
 
 import Reservations from "./pages/Reservations";
-import Login from "./pages/Login";
 import AddReservation from "./pages/AddReservation";
 import ReservationDetails from "./pages/ReservationDetails";
 
-export default function App() {
+import Login from "./pages/Login";
+
+
+function MainLayout() {
   return (
     <div className="flex min-h-screen bg-gray-100">
       <Sidebar />
@@ -32,45 +34,146 @@ export default function App() {
 
         <main className="flex-1 overflow-auto p-8">
           <Routes>
-            {/* Dashboard */}
-            <Route path="/" element={<Dashboard />} />
 
-            {/* Clients */}
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/clients/add" element={<AddClient />} />
-            <Route path="/clients/edit/:id" element={<EditClient />} />
-            <Route path="/clients/:id" element={<ClientDetails />} />
+            {/* =========================
+                DASHBOARD
+            ========================= */}
 
-            {/* Payments */}
-            <Route path="/payments" element={<Payments />} />
-            <Route path="/payments/add" element={<AddPayment />} />
+            <Route
+              path="/"
+              element={<Dashboard />}
+            />
 
-            {/* Documents */}
-            <Route path="/documents" element={<Documents />} />
+            {/* =========================
+                CLIENTS
+            ========================= */}
 
-            {/* Passport */}
-            <Route path="/passport" element={<UploadPassport />} />
+            <Route
+              path="/clients"
+              element={<Clients />}
+            />
 
-            {/* Reservations */}
-            <Route path="/reservations" element={<Reservations />} />
+            <Route
+              path="/clients/add"
+              element={<AddClient />}
+            />
+
+            <Route
+              path="/clients/edit/:id"
+              element={<EditClient />}
+            />
+
+            <Route
+              path="/clients/:id"
+              element={<ClientDetails />}
+            />
+
+            {/* Ancienne URL */}
+            <Route
+              path="/add-client"
+              element={<AddClient />}
+            />
+
+            {/* =========================
+                PAYMENTS
+            ========================= */}
+
+            <Route
+              path="/payments"
+              element={<Payments />}
+            />
+
+            <Route
+              path="/payments/add"
+              element={<AddPayment />}
+            />
+
+            {/* =========================
+                DOCUMENTS
+            ========================= */}
+
+            <Route
+              path="/documents"
+              element={<Documents />}
+            />
+
+            {/* =========================
+                PASSPORT
+            ========================= */}
+
+            <Route
+              path="/passport"
+              element={<UploadPassport />}
+            />
+
+            {/* =========================
+                RESERVATIONS
+            ========================= */}
+
+            <Route
+              path="/reservations"
+              element={<Reservations />}
+            />
+
             <Route
               path="/reservations/add"
               element={<AddReservation />}
             />
+
             <Route
               path="/reservations/:id"
               element={<ReservationDetails />}
             />
 
-            {/* Settings */}
-            <Route path="/settings" element={<Settings />} />
+            {/* =========================
+                SETTINGS
+            ========================= */}
 
-            {/* Compatibilité ancienne URL */}
-            <Route path="/add-client" element={<AddClient />} />
-            <Route path="/login" element={<Login />} />
+            <Route
+              path="/settings"
+              element={<Settings />}
+            />
+
+            {/* =========================
+                URL INCONNUE
+            ========================= */}
+
+            <Route
+              path="*"
+              element={<Navigate to="/" replace />}
+            />
+
           </Routes>
         </main>
       </div>
     </div>
+  );
+}
+
+
+export default function App() {
+
+  return (
+    <Routes>
+
+      {/* =========================
+          LOGIN
+      ========================= */}
+
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+      {/* =========================
+          APPLICATION
+      ========================= */}
+
+      <Route
+        path="/*"
+        element={<MainLayout />}
+      />
+
+    </Routes>
   );
 }
