@@ -1,36 +1,172 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import path from "path";
 
 import clientRoutes from "./routes/client.routes.js";
-import dashboardRoutes from "./routes/dashboard.routes.js";
 import reservationRoutes from "./routes/reservation.routes.js";
+import dashboardRoutes from "./routes/dashboard.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 
-dotenv.config();
+import { authenticateToken } from "./middleware/auth.js";
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+/* =========================
+   CORS
+========================= */
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://instant-voyagee-git-main-instantvoyage.vercel.app",
+  "https://instant-voyagee-enz1pxnmt-instantvoyage.vercel.app",
+  "https://instantvoyagee.onrender.com",
+];
 
 app.use(
-  "/uploads",
-  express.static(path.resolve("uploads"))
+  cors({
+    origin: function (origin, callback) {
+      // Autoriser les requêtes sans Origin
+      // Exemple : Postman ou certaines requêtes serveur
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Domaines connus
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Autoriser les previews Vercel InstantVoyagee
+      if (
+        origin.endsWith(".vercel.app") &&
+        origin.includes("instant-voyagee")
+      ) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("CORS: origine non autorisée"));
+    },
+
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
+
+    credentials: true,
+  })
 );
 
-app.get("/", (req, res) => {
+/* =========================
+   MIDDLEWARE
+========================= */
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+/* =========================
+   AUTH
+   IMPORTANT :
+   Le login/register restent
+   accessibles sans JWT.
+========================= */
+
+app.use("/api/auth", authRoutes);
+
+/* =========================
+   ROUTES PROTEGEES
+   Toutes ces routes
+   nécessitent un JWT.
+========================= */
+app.get("/api", (req, res) => {
   res.json({
-    application: "InstantVoyagee API",
-    version: "1.0.0",
-    status: "OK",
+    success: true,
+    message: "InstantVoyagee API",
+    status: "online",
   });
 });
 
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/clients", clientRoutes);
-app.use("/api/reservations", reservationRoutes);
-app.use("/api/upload", uploadRoutes);
+app.use(
+  "/api/clients",
+  authenticateToken,
+  clientRoutes
+);
+
+app.use(
+  "/api/reservations",
+  authenticateToken,
+  reservationRoutes
+);
+
+app.use(
+  "/api/dashboard",
+  authenticateToken,
+  dashboardRoutes
+);
+
+app.use(
+  "/api/upload",
+  authenticateToken,
+  uploadRoutes
+);
+
+/* =========================
+   TEST API
+========================= */
+
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "InstantVoyagee API fonctionne correctement 🚀",
+  });
+});
+
+app.get("/api", (req, res) => {
+  res.json({
+    success: true,
+    message: "InstantVoyagee API",
+    status: "online",
+  });
+});
+
+/* =========================
+   404
+========================= */
+
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "Route introuvable",
+    path: req.originalUrl,
+  });
+});
+
+/* =========================
+   ERREUR GLOBALE
+========================= */
+
+app.use((err, req, res, next) => {
+  console.error("❌ Erreur serveur :", err);
+
+  if (err.message?.startsWith("CORS")) {
+    return res.status(403).json({
+      success: false,
+      message: "Origine non autorisée",
+    });
+  }
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Erreur interne du serveur",
+  });
+});
 
 export default app;
