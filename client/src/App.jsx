@@ -18,6 +18,7 @@ import Settings from "./pages/Settings";
 import UploadPassport from "./pages/UploadPassport";
 
 import Reservations from "./pages/Reservations";
+import Login from "./pages/Login";
 import AddReservation from "./pages/AddReservation";
 import ReservationDetails from "./pages/ReservationDetails";
 
@@ -66,6 +67,7 @@ export default function App() {
 
             {/* Compatibilité ancienne URL */}
             <Route path="/add-client" element={<AddClient />} />
+            <Route path="/login" element={<Login />} />
           </Routes>
         </main>
       </div>

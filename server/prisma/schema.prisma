@@ -3,90 +3,72 @@ generator client {
 }
 
 datasource db {
-provider = "postgresql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model Client {
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+}
 
+model User {
+  id           Int      @id @default(autoincrement())
+  fullName     String
+  email        String   @unique
+  passwordHash String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Client {
   id Int @id @default(autoincrement())
 
   fullName String
-
   phone String?
-
   whatsapp String?
-
   email String?
-
   address String?
-
   nationality String?
-
   birthDate DateTime?
-
   passportNumber String?
-
   passportExpiry DateTime?
-
   passportFile String?
-
   photoFile String?
-
   visaFile String?
-
   ticketFile String?
-
   receiptFile String?
 
   destination String
-
   departureDate DateTime
-
   returnDate DateTime?
-
   airline String?
-
   flightNumber String?
-
   ticketNumber String?
-
   ticketPrice Float
-
   amountPaid Float
-
   remaining Float
-
   status String
-
   notes String?
 
   createdAt DateTime @default(now())
-
   updatedAt DateTime @updatedAt
+
   reservationId Int?
-
-reservation Reservation? @relation(fields: [reservationId], references: [id])
-
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
 }
-model Reservation {
 
+model Reservation {
   id Int @id @default(autoincrement())
 
   title String
-
   destination String
-
   departureDate DateTime
-
   returnDate DateTime?
-
   airline String?
-
   flightNumber String?
-
   hotel String?
-
   notes String?
 
   createdAt DateTime @default(now())

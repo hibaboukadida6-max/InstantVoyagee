@@ -1,15 +1,14 @@
 import { Router } from "express";
 import prisma from "../prisma.js";
+import { authenticateToken } from "../middleware/auth.js";
 
 const router = Router();
 
-/*
-|--------------------------------------------------------------------------
-| GET Tous les clients
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   GET TOUS LES CLIENTS
+   ========================================================= */
 
-router.get("/", async (req, res) => {
+router.get("/", authenticateToken, async (req, res) => {
   try {
     const clients = await prisma.client.findMany({
       include: {
@@ -22,21 +21,29 @@ router.get("/", async (req, res) => {
 
     res.json(clients);
   } catch (error) {
+    console.error("Erreur GET clients :", error);
+
     res.status(500).json({
+      success: false,
       error: error.message,
     });
   }
 });
 
-/*
-|--------------------------------------------------------------------------
-| GET Un client
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   GET UN CLIENT
+   ========================================================= */
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", authenticateToken, async (req, res) => {
   try {
     const id = Number(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: "ID client invalide",
+      });
+    }
 
     const client = await prisma.client.findUnique({
       where: {
@@ -49,25 +56,27 @@ router.get("/:id", async (req, res) => {
 
     if (!client) {
       return res.status(404).json({
+        success: false,
         error: "Client introuvable",
       });
     }
 
     res.json(client);
   } catch (error) {
+    console.error("Erreur GET client :", error);
+
     res.status(500).json({
+      success: false,
       error: error.message,
     });
   }
 });
 
-/*
-|--------------------------------------------------------------------------
-| POST Nouveau client
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   POST NOUVEAU CLIENT
+   ========================================================= */
 
-router.post("/", async (req, res) => {
+router.post("/", authenticateToken, async (req, res) => {
   try {
     const {
       fullName,
@@ -91,7 +100,15 @@ router.post("/", async (req, res) => {
       reservationId,
     } = req.body;
 
-    const total = Number(ticketPrice);
+    if (!fullName || !destination || !departureDate) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Le nom, la destination et la date de départ sont obligatoires",
+      });
+    }
+
+    const total = Number(ticketPrice || 0);
     const paid = Number(amountPaid || 0);
 
     const remaining = total - paid;
@@ -130,24 +147,21 @@ router.post("/", async (req, res) => {
           : null,
 
         airline,
-
         flightNumber,
-
         ticketNumber,
 
         ticketPrice: total,
-
         amountPaid: paid,
-
         remaining,
-
         status,
 
         notes,
 
-        reservationId:
-          reservationId || null,
+        reservationId: reservationId
+          ? Number(reservationId)
+          : null,
       },
+
       include: {
         reservation: true,
       },
@@ -155,21 +169,29 @@ router.post("/", async (req, res) => {
 
     res.status(201).json(client);
   } catch (error) {
+    console.error("Erreur création client :", error);
+
     res.status(500).json({
+      success: false,
       error: error.message,
     });
   }
 });
 
-/*
-|--------------------------------------------------------------------------
-| PUT Modifier client
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   PUT MODIFIER CLIENT
+   ========================================================= */
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", authenticateToken, async (req, res) => {
   try {
     const id = Number(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: "ID client invalide",
+      });
+    }
 
     const {
       fullName,
@@ -193,7 +215,15 @@ router.put("/:id", async (req, res) => {
       reservationId,
     } = req.body;
 
-    const total = Number(ticketPrice);
+    if (!fullName || !destination || !departureDate) {
+      return res.status(400).json({
+        success: false,
+        error:
+          "Le nom, la destination et la date de départ sont obligatoires",
+      });
+    }
+
+    const total = Number(ticketPrice || 0);
     const paid = Number(amountPaid || 0);
 
     const remaining = total - paid;
@@ -210,6 +240,7 @@ router.put("/:id", async (req, res) => {
       where: {
         id,
       },
+
       data: {
         fullName,
         phone,
@@ -237,24 +268,21 @@ router.put("/:id", async (req, res) => {
           : null,
 
         airline,
-
         flightNumber,
-
         ticketNumber,
 
         ticketPrice: total,
-
         amountPaid: paid,
-
         remaining,
-
         status,
 
         notes,
 
-        reservationId:
-          reservationId || null,
+        reservationId: reservationId
+          ? Number(reservationId)
+          : null,
       },
+
       include: {
         reservation: true,
       },
@@ -262,21 +290,36 @@ router.put("/:id", async (req, res) => {
 
     res.json(client);
   } catch (error) {
+    console.error("Erreur modification client :", error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+        error: "Client introuvable",
+      });
+    }
+
     res.status(500).json({
+      success: false,
       error: error.message,
     });
   }
 });
 
-/*
-|--------------------------------------------------------------------------
-| DELETE Client
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   DELETE CLIENT
+   ========================================================= */
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authenticateToken, async (req, res) => {
   try {
     const id = Number(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        error: "ID client invalide",
+      });
+    }
 
     await prisma.client.delete({
       where: {
@@ -285,10 +328,21 @@ router.delete("/:id", async (req, res) => {
     });
 
     res.json({
+      success: true,
       message: "Client supprimé avec succès",
     });
   } catch (error) {
+    console.error("Erreur suppression client :", error);
+
+    if (error.code === "P2025") {
+      return res.status(404).json({
+        success: false,
+        error: "Client introuvable",
+      });
+    }
+
     res.status(500).json({
+      success: false,
       error: error.message,
     });
   }

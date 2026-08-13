@@ -7,6 +7,7 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
+
 import api from "../services/api";
 
 export default function Clients() {
@@ -21,34 +22,78 @@ export default function Clients() {
     loadClients();
   }, []);
 
+  // =========================
+  // CHARGER LES CLIENTS
+  // =========================
+
   async function loadClients() {
     try {
+      setLoading(true);
+
       const response = await api.get("/clients");
+
       setClients(response.data);
     } catch (error) {
-      console.error(error);
+      console.error("Erreur chargement clients :", error);
+
+      if (error.response?.status === 401) {
+        alert("Votre session a expiré. Veuillez vous reconnecter.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
       alert("Impossible de charger les clients.");
     } finally {
       setLoading(false);
     }
   }
 
+  // =========================
+  // SUPPRIMER CLIENT
+  // =========================
+
   async function deleteClient(id) {
-    if (!window.confirm("Supprimer ce client ?")) return;
+    const confirmation = window.confirm(
+      "Voulez-vous vraiment supprimer ce client ?"
+    );
+
+    if (!confirmation) {
+      return;
+    }
 
     try {
       await api.delete(`/clients/${id}`);
-      loadClients();
+
+      // Recharger la liste
+      await loadClients();
     } catch (error) {
-      console.error(error);
-      alert("Erreur lors de la suppression.");
+      console.error("Erreur suppression client :", error);
+
+      if (error.response?.status === 401) {
+        alert("Votre session a expiré. Veuillez vous reconnecter.");
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+        return;
+      }
+
+      alert("Erreur lors de la suppression du client.");
     }
   }
+
+  // =========================
+  // FILTRAGE
+  // =========================
 
   const filteredClients = clients.filter((client) => {
     const keyword = search.toLowerCase().trim();
 
     const searchMatch =
+      !keyword ||
       client.fullName?.toLowerCase().includes(keyword) ||
       client.phone?.toLowerCase().includes(keyword) ||
       client.whatsapp?.toLowerCase().includes(keyword) ||
@@ -56,14 +101,21 @@ export default function Clients() {
 
     const dateMatch =
       departureFilter === "" ||
-      client.departureDate.slice(0, 10) === departureFilter;
+      (client.departureDate &&
+        client.departureDate.slice(0, 10) === departureFilter);
 
     return searchMatch && dateMatch;
   });
 
+  // =========================
+  // AFFICHAGE
+  // =========================
+
   return (
     <div>
-      {/* Titre */}
+      {/* =========================
+          TITRE
+      ========================= */}
 
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -81,15 +133,17 @@ export default function Clients() {
           className="bg-blue-900 text-white px-5 py-3 rounded-xl flex items-center gap-2 hover:bg-blue-800 transition"
         >
           <Plus size={20} />
+
           Nouveau Client
         </button>
       </div>
 
-      {/* Recherche + Date */}
+      {/* =========================
+          RECHERCHE + FILTRE
+      ========================= */}
 
       <div className="bg-white rounded-xl shadow-sm p-4 mb-6 flex gap-4 items-center">
-
-        <Search className="text-gray-400" />
+        <Search className="text-gray-400" size={22} />
 
         <input
           type="text"
@@ -102,7 +156,9 @@ export default function Clients() {
         <input
           type="date"
           value={departureFilter}
-          onChange={(e) => setDepartureFilter(e.target.value)}
+          onChange={(e) =>
+            setDepartureFilter(e.target.value)
+          }
           className="border rounded-lg px-3 py-2"
         />
 
@@ -115,134 +171,229 @@ export default function Clients() {
         >
           Réinitialiser
         </button>
-
       </div>
 
-      {/* Tableau */}
+      {/* =========================
+          TABLEAU
+      ========================= */}
 
       <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-
-        <table className="w-full">
-
-          <thead className="bg-gray-50 text-gray-600">
-
-            <tr>
-              <th className="text-left p-4">Nom</th>
-              <th className="text-left">Téléphone</th>
-              <th className="text-left">Destination</th>
-              <th className="text-left">Départ</th>
-              <th className="text-left">Prix</th>
-              <th className="text-left">Payé</th>
-              <th className="text-left">Reste</th>
-              <th className="text-left">Statut</th>
-              <th className="text-center">Actions</th>
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {loading ? (
-
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 text-gray-600">
               <tr>
-                <td colSpan="9" className="text-center p-10">
-                  Chargement...
-                </td>
+                <th className="text-left p-4">
+                  Nom
+                </th>
+
+                <th className="text-left p-4">
+                  Téléphone
+                </th>
+
+                <th className="text-left p-4">
+                  Destination
+                </th>
+
+                <th className="text-left p-4">
+                  Départ
+                </th>
+
+                <th className="text-left p-4">
+                  Prix
+                </th>
+
+                <th className="text-left p-4">
+                  Payé
+                </th>
+
+                <th className="text-left p-4">
+                  Reste
+                </th>
+
+                <th className="text-left p-4">
+                  Statut
+                </th>
+
+                <th className="text-center p-4">
+                  Actions
+                </th>
               </tr>
+            </thead>
 
-            ) : filteredClients.length === 0 ? (
+            <tbody>
+              {/* CHARGEMENT */}
 
-              <tr>
-                <td colSpan="9" className="text-center p-10">
-                  Aucun client trouvé.
-                </td>
-              </tr>
-
-            ) : (
-
-              filteredClients.map((client) => (
-
-                <tr
-                  key={client.id}
-                  className="border-t hover:bg-gray-50"
-                >
-
-                  <td className="p-4 font-medium">
-                    {client.fullName}
+              {loading && (
+                <tr>
+                  <td
+                    colSpan="9"
+                    className="text-center p-10 text-gray-500"
+                  >
+                    Chargement des clients...
                   </td>
-
-                  <td>{client.phone || "-"}</td>
-
-                  <td>{client.destination}</td>
-
-                  <td>
-                    {new Date(client.departureDate).toLocaleDateString("fr-FR")}
-                  </td>
-
-                  <td>{client.ticketPrice} DT</td>
-
-                  <td>{client.amountPaid} DT</td>
-
-                  <td>{client.remaining} DT</td>
-
-                  <td>
-                    <StatusBadge status={client.status} />
-                  </td>
-
-                  <td>
-
-                    <div className="flex justify-center gap-3">
-
-                      <button
-                        onClick={() => navigate(`/clients/${client.id}`)}
-                        className="text-blue-600 hover:scale-110 transition"
-                        title="Voir"
-                      >
-                        <Eye size={19} />
-                      </button>
-
-                      <button
-                        onClick={() => navigate(`/clients/edit/${client.id}`)}
-                        className="text-green-600 hover:scale-110 transition"
-                        title="Modifier"
-                      >
-                        <Edit size={19} />
-                      </button>
-
-                      <button
-                        onClick={() => deleteClient(client.id)}
-                        className="text-red-600 hover:scale-110 transition"
-                        title="Supprimer"
-                      >
-                        <Trash2 size={19} />
-                      </button>
-
-                    </div>
-
-                  </td>
-
                 </tr>
+              )}
 
-              ))
+              {/* AUCUN CLIENT */}
 
-            )}
+              {!loading &&
+                filteredClients.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan="9"
+                      className="text-center p-10 text-gray-500"
+                    >
+                      Aucun client trouvé.
+                    </td>
+                  </tr>
+                )}
 
-          </tbody>
+              {/* CLIENTS */}
 
-        </table>
+              {!loading &&
+                filteredClients.length > 0 &&
+                filteredClients.map((client) => (
+                  <tr
+                    key={client.id}
+                    className="border-t hover:bg-gray-50"
+                  >
+                    {/* NOM */}
 
+                    <td className="p-4 font-medium text-gray-800">
+                      {client.fullName}
+                    </td>
+
+                    {/* TELEPHONE */}
+
+                    <td className="p-4">
+                      {client.phone || "-"}
+                    </td>
+
+                    {/* DESTINATION */}
+
+                    <td className="p-4">
+                      {client.destination || "-"}
+                    </td>
+
+                    {/* DEPART */}
+
+                    <td className="p-4">
+                      {client.departureDate
+                        ? new Date(
+                            client.departureDate
+                          ).toLocaleDateString("fr-FR")
+                        : "-"}
+                    </td>
+
+                    {/* PRIX */}
+
+                    <td className="p-4">
+                      {Number(client.ticketPrice || 0).toFixed(
+                        2
+                      )}{" "}
+                      DT
+                    </td>
+
+                    {/* PAYE */}
+
+                    <td className="p-4">
+                      {Number(client.amountPaid || 0).toFixed(
+                        2
+                      )}{" "}
+                      DT
+                    </td>
+
+                    {/* RESTE */}
+
+                    <td className="p-4">
+                      {Number(client.remaining || 0).toFixed(
+                        2
+                      )}{" "}
+                      DT
+                    </td>
+
+                    {/* STATUT */}
+
+                    <td className="p-4">
+                      <StatusBadge
+                        status={client.status}
+                      />
+                    </td>
+
+                    {/* ACTIONS */}
+
+                    <td className="p-4">
+                      <div className="flex justify-center gap-3">
+                        {/* VOIR */}
+
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/clients/${client.id}`
+                            )
+                          }
+                          className="text-blue-600 hover:scale-110 transition"
+                          title="Voir"
+                        >
+                          <Eye size={19} />
+                        </button>
+
+                        {/* MODIFIER */}
+
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/clients/edit/${client.id}`
+                            )
+                          }
+                          className="text-green-600 hover:scale-110 transition"
+                          title="Modifier"
+                        >
+                          <Edit size={19} />
+                        </button>
+
+                        {/* SUPPRIMER */}
+
+                        <button
+                          onClick={() =>
+                            deleteClient(client.id)
+                          }
+                          className="text-red-600 hover:scale-110 transition"
+                          title="Supprimer"
+                        >
+                          <Trash2 size={19} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
+      {/* =========================
+          COMPTEUR
+      ========================= */}
+
+      {!loading && (
+        <div className="mt-4 text-sm text-gray-500">
+          {filteredClients.length} client
+          {filteredClients.length !== 1 ? "s" : ""}
+        </div>
+      )}
     </div>
   );
 }
 
-function StatusBadge({ status }) {
+// =========================
+// BADGE STATUT
+// =========================
 
+function StatusBadge({ status }) {
   let style = "";
 
   switch (status) {
-
     case "VALIDÉ":
       style = "bg-green-100 text-green-700";
       break;
@@ -251,15 +402,20 @@ function StatusBadge({ status }) {
       style = "bg-yellow-100 text-yellow-700";
       break;
 
-    default:
+    case "NON PAYÉ":
       style = "bg-red-100 text-red-700";
+      break;
+
+    default:
+      style = "bg-gray-100 text-gray-700";
+      break;
   }
 
   return (
     <span
       className={`px-3 py-1 rounded-full text-xs font-bold ${style}`}
     >
-      {status}
+      {status || "INCONNU"}
     </span>
   );
 }
