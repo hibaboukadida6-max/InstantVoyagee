@@ -1,144 +1,91 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000";
+import api from "../services/api";
 
 export default function Login() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  async function handleLogin(e) {
     e.preventDefault();
 
     setError("");
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-        }),
+      const response = await api.post("/auth/login", {
+        email,
+        password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Email ou mot de passe incorrect"
-        );
-      }
+      const { token, user } = response.data;
 
       // Sauvegarder le JWT
-      localStorage.setItem("token", data.token);
+      localStorage.setItem("token", token);
 
-      // Sauvegarder les informations de l'utilisateur
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data.user)
-      );
+      // Sauvegarder l'utilisateur
+      localStorage.setItem("user", JSON.stringify(user));
 
-      // Aller au Dashboard
+      // Aller au tableau de bord
       navigate("/");
-    } catch (err) {
-      console.error("Erreur connexion :", err);
+    } catch (error) {
+      console.error("Erreur connexion :", error);
 
       setError(
-        err.message ||
-          "Impossible de se connecter au serveur"
+        error.response?.data?.message ||
+          "Erreur lors de la connexion"
       );
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        {/* Logo / titre */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-blue-700">
-            InstantVoyagee
-          </h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <form
+        onSubmit={handleLogin}
+        className="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md"
+      >
+        <h1 className="text-2xl font-bold mb-6">
+          Connexion InstantVoyagee
+        </h1>
 
-          <p className="text-gray-500 mt-2">
-            Connexion à votre espace
-          </p>
-        </div>
-
-        {/* Erreur */}
         {error && (
-          <div className="mb-5 rounded-lg bg-red-100 border border-red-300 text-red-700 px-4 py-3">
+          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-5">
-          {/* Email */}
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Email
-            </label>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full border rounded-lg p-3 mb-4"
+          required
+        />
 
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="exemple@email.com"
-              required
-              autoComplete="email"
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+        <input
+          type="password"
+          placeholder="Mot de passe"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full border rounded-lg p-3 mb-6"
+          required
+        />
 
-          {/* Mot de passe */}
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Mot de passe
-            </label>
-
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Votre mot de passe"
-              required
-              autoComplete="current-password"
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* Bouton */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-blue-700 text-white font-semibold py-3 hover:bg-blue-800 transition disabled:opacity-50"
-          >
-            {loading ? "Connexion..." : "Se connecter"}
-          </button>
-        </form>
-
-        <p className="text-center text-xs text-gray-400 mt-6">
-          Espace sécurisé InstantVoyagee
-        </p>
-      </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-900 text-white p-3 rounded-lg"
+        >
+          {loading ? "Connexion..." : "Se connecter"}
+        </button>
+      </form>
     </div>
   );
 }

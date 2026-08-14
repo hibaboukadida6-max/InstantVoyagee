@@ -11,15 +11,10 @@ import { authenticateToken } from "./middleware/auth.js";
 
 const app = express();
 
-/* =========================
-   CORS
-========================= */
-
 const allowedOrigins = [
   "http://localhost:5173",
   "https://instant-voyagee-git-main-instantvoyage.vercel.app",
   "https://instant-voyagee-enz1pxnmt-instantvoyage.vercel.app",
-  "https://instantvoyagee.onrender.com",
 ];
 
 app.use(
@@ -61,16 +56,12 @@ app.use(
   })
 );
 
-/* =========================
-   MIDDLEWARE
-========================= */
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* =========================
-   TEST API
-========================= */
+// =========================
+// TEST API
+// =========================
 
 app.get("/", (req, res) => {
   res.json({
@@ -87,16 +78,16 @@ app.get("/api", (req, res) => {
   });
 });
 
-/* =========================
-   AUTH
-   Pas besoin de JWT
-========================= */
+// =========================
+// AUTH
+// PAS DE JWT POUR LOGIN
+// =========================
 
 app.use("/api/auth", authRoutes);
 
-/* =========================
-   ROUTES PROTEGEES
-========================= */
+// =========================
+// ROUTES PROTÉGÉES
+// =========================
 
 app.use(
   "/api/clients",
@@ -122,9 +113,9 @@ app.use(
   uploadRoutes
 );
 
-/* =========================
-   404
-========================= */
+// =========================
+// 404
+// =========================
 
 app.use((req, res) => {
   res.status(404).json({
@@ -134,9 +125,9 @@ app.use((req, res) => {
   });
 });
 
-/* =========================
-   ERREUR GLOBALE
-========================= */
+// =========================
+// ERREUR
+// =========================
 
 app.use((err, req, res, next) => {
   console.error("❌ Erreur serveur :", err);

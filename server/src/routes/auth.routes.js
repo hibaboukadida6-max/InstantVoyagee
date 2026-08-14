@@ -7,11 +7,6 @@ const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-if (!JWT_SECRET) {
-  console.warn("⚠️ JWT_SECRET n'est pas configuré.");
-}
-
-// LOGIN
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -54,6 +49,7 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign(
       {
         userId: user.id,
+        role: user.role,
       },
       JWT_SECRET,
       {
@@ -61,7 +57,7 @@ router.post("/login", async (req, res) => {
       }
     );
 
-    return res.json({
+    res.json({
       message: "Connexion réussie",
       token,
       user: {
@@ -74,68 +70,10 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Erreur login :", error);
 
-    return res.status(500).json({
+    res.status(500).json({
       message: "Erreur serveur",
     });
   }
 });
 
 export default router;
-// CREER UN COMPTE EMPLOYE
-router.post("/register", async (req, res) => {
-  try {
-    const { fullName, email, password } = req.body;
-
-    if (!fullName || !email || !password) {
-      return res.status(400).json({
-        message: "Nom, email et mot de passe obligatoires",
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        message: "Le mot de passe doit contenir au moins 6 caractères",
-      });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email: normalizedEmail,
-      },
-    });
-
-    if (existingUser) {
-      return res.status(409).json({
-        message: "Cet email existe déjà",
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        fullName: fullName.trim(),
-        email: normalizedEmail,
-        passwordHash,
-        active: true,
-      },
-    });
-
-    res.status(201).json({
-      message: "Compte employé créé avec succès",
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-      },
-    });
-  } catch (error) {
-    console.error("Erreur création compte :", error);
-
-    res.status(500).json({
-      message: "Erreur serveur",
-    });
-  }
-});
