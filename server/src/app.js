@@ -14,22 +14,30 @@ import { authenticateToken } from "./middleware/auth.js";
 
 const app = express();
 
-// =====================================================
-// PATHS
-// =====================================================
+/* =====================================================
+   CHEMINS
+===================================================== */
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/*
+  __dirname = server/src
+
+  donc ../uploads = server/uploads
+*/
+
 const uploadsPath = path.join(__dirname, "../uploads");
 
-// =====================================================
-// CORS
-// =====================================================
+/* =====================================================
+   CORS
+===================================================== */
 
 const allowedOrigins = [
   "http://localhost:5173",
+
   "https://instant-voyagee-git-main-instantvoyage.vercel.app",
+
   "https://instant-voyagee-enz1pxnmt-instantvoyage.vercel.app",
 ];
 
@@ -51,7 +59,9 @@ app.use(
         return callback(null, true);
       }
 
-      return callback(new Error("CORS: origine non autorisée"));
+      return callback(
+        new Error("CORS: origine non autorisée")
+      );
     },
 
     methods: [
@@ -72,31 +82,50 @@ app.use(
   })
 );
 
-// =====================================================
-// MIDDLEWARE
-// =====================================================
+/* =====================================================
+   MIDDLEWARES
+===================================================== */
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// =====================================================
-// FICHIERS UPLOADS
-// IMPORTANT
-// =====================================================
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
+
+/* =====================================================
+   FICHIERS UPLOADS
+===================================================== */
+
+/*
+  IMPORTANT
+
+  Permet d'ouvrir :
+
+  /uploads/passports/fichier.pdf
+
+  /uploads/photos/photo.jpg
+
+  /uploads/tickets/ticket.pdf
+
+  etc.
+*/
 
 app.use(
   "/uploads",
   express.static(uploadsPath)
 );
 
-// =====================================================
-// TEST API
-// =====================================================
+/* =====================================================
+   TEST API
+===================================================== */
 
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "InstantVoyagee API fonctionne correctement 🚀",
+    message:
+      "InstantVoyagee API fonctionne correctement 🚀",
   });
 });
 
@@ -108,20 +137,18 @@ app.get("/api", (req, res) => {
   });
 });
 
-// =====================================================
-// AUTH
-// PAS DE JWT
-// =====================================================
+/* =====================================================
+   AUTH
+===================================================== */
 
 app.use(
   "/api/auth",
   authRoutes
 );
 
-// =====================================================
-// DOCUMENTS
-// JWT OBLIGATOIRE POUR LES API DOCUMENTS
-// =====================================================
+/* =====================================================
+   DOCUMENTS
+===================================================== */
 
 app.use(
   "/api/documents",
@@ -129,9 +156,9 @@ app.use(
   documentRoutes
 );
 
-// =====================================================
-// CLIENTS
-// =====================================================
+/* =====================================================
+   CLIENTS
+===================================================== */
 
 app.use(
   "/api/clients",
@@ -139,9 +166,9 @@ app.use(
   clientRoutes
 );
 
-// =====================================================
-// RESERVATIONS
-// =====================================================
+/* =====================================================
+   RESERVATIONS
+===================================================== */
 
 app.use(
   "/api/reservations",
@@ -149,9 +176,9 @@ app.use(
   reservationRoutes
 );
 
-// =====================================================
-// DASHBOARD
-// =====================================================
+/* =====================================================
+   DASHBOARD
+===================================================== */
 
 app.use(
   "/api/dashboard",
@@ -159,9 +186,9 @@ app.use(
   dashboardRoutes
 );
 
-// =====================================================
-// UPLOAD
-// =====================================================
+/* =====================================================
+   UPLOAD
+===================================================== */
 
 app.use(
   "/api/upload",
@@ -169,9 +196,9 @@ app.use(
   uploadRoutes
 );
 
-// =====================================================
-// 404
-// =====================================================
+/* =====================================================
+   404
+===================================================== */
 
 app.use((req, res) => {
   res.status(404).json({
@@ -181,14 +208,19 @@ app.use((req, res) => {
   });
 });
 
-// =====================================================
-// ERREUR GLOBALE
-// =====================================================
+/* =====================================================
+   ERREUR
+===================================================== */
 
 app.use((err, req, res, next) => {
-  console.error("❌ Erreur serveur :", err);
+  console.error(
+    "❌ Erreur serveur :",
+    err
+  );
 
-  if (err.message?.startsWith("CORS")) {
+  if (
+    err.message?.startsWith("CORS")
+  ) {
     return res.status(403).json({
       success: false,
       message: "Origine non autorisée",
@@ -197,7 +229,9 @@ app.use((err, req, res, next) => {
 
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || "Erreur interne du serveur",
+    message:
+      err.message ||
+      "Erreur interne du serveur",
   });
 });
 

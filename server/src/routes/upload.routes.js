@@ -1,4 +1,5 @@
 import { Router } from "express";
+
 import prisma from "../prisma.js";
 
 import {
@@ -13,23 +14,126 @@ const router = Router();
 
 /* =====================================================
    FONCTION COMMUNE
-   Créer un document lié au client
 ===================================================== */
 
-async function createDocument({
+async function saveDocument({
   clientId,
   type,
-  fileName,
-  filePath,
+  file,
 }) {
-  return await prisma.document.create({
+  if (!file) {
+    throw new Error(
+      "Aucun fichier reçu"
+    );
+  }
+
+  const id = Number(clientId);
+
+  if (Number.isNaN(id)) {
+    throw new Error(
+      "ID client invalide"
+    );
+  }
+
+  /* Vérifier le client */
+
+  const client =
+    await prisma.client.findUnique({
+      where: {
+        id,
+      },
+    });
+
+  if (!client) {
+    const error = new Error(
+      "Client introuvable"
+    );
+
+    error.status = 404;
+
+    throw error;
+  }
+
+  /* =================================================
+     CHEMIN DU FICHIER
+  ================================================= */
+
+  const filePath =
+    `${type}s/${file.filename}`;
+
+  /*
+    Exemple :
+
+    passports/1786818372980.pdf
+    tickets/1786818372981.pdf
+    visas/1786818372982.pdf
+  */
+
+  /* =================================================
+     METTRE À JOUR LE CLIENT
+  ================================================= */
+
+  const fieldMap = {
+    photo: "photoFile",
+    passport: "passportFile",
+    ticket: "ticketFile",
+    visa: "visaFile",
+    receipt: "receiptFile",
+  };
+
+  const field =
+    fieldMap[type];
+
+  if (!field) {
+    throw new Error(
+      "Type de document invalide"
+    );
+  }
+
+  await prisma.client.update({
+    where: {
+      id,
+    },
+
     data: {
-      clientId,
-      type,
-      fileName,
-      filePath,
+      [field]: filePath,
     },
   });
+
+  /* =================================================
+     SUPPRIMER L'ANCIEN DOCUMENT DU MÊME TYPE
+  ================================================= */
+
+  await prisma.document.deleteMany({
+    where: {
+      clientId: id,
+      type,
+    },
+  });
+
+  /* =================================================
+     CRÉER LE DOCUMENT
+  ================================================= */
+
+  const document =
+    await prisma.document.create({
+      data: {
+        clientId: id,
+
+        type,
+
+        fileName:
+          file.originalname,
+
+        filePath,
+      },
+
+      include: {
+        client: true,
+      },
+    });
+
+  return document;
 }
 
 /* =====================================================
@@ -39,65 +143,35 @@ async function createDocument({
 router.post(
   "/photo/:id",
   uploadPhoto.single("file"),
+
   async (req, res) => {
     try {
-      const clientId = Number(req.params.id);
-
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: "Aucun fichier envoyé.",
+      const document =
+        await saveDocument({
+          clientId: req.params.id,
+          type: "photo",
+          file: req.file,
         });
-      }
-
-      /* Vérifier que le client existe */
-
-      const client = await prisma.client.findUnique({
-        where: {
-          id: clientId,
-        },
-      });
-
-      if (!client) {
-        return res.status(404).json({
-          success: false,
-          message: "Client introuvable.",
-        });
-      }
-
-      const filePath = `photos/${req.file.filename}`;
-
-      /* Garder l'ancien champ */
-
-      await prisma.client.update({
-        where: {
-          id: clientId,
-        },
-        data: {
-          photoFile: filePath,
-        },
-      });
-
-      /* Créer le document */
-
-      const document = await createDocument({
-        clientId,
-        type: "Photo",
-        fileName: req.file.originalname,
-        filePath,
-      });
 
       res.status(201).json({
         success: true,
-        message: "Photo enregistrée.",
+        message:
+          "Photo enregistrée avec succès",
         document,
       });
     } catch (error) {
-      console.error("Erreur upload photo :", error);
+      console.error(
+        "Erreur upload photo :",
+        error
+      );
 
-      res.status(500).json({
+      res.status(
+        error.status || 500
+      ).json({
         success: false,
-        message: "Erreur lors de l'enregistrement de la photo.",
+        message:
+          error.message ||
+          "Erreur upload photo",
       });
     }
   }
@@ -110,63 +184,35 @@ router.post(
 router.post(
   "/passport/:id",
   uploadPassport.single("file"),
+
   async (req, res) => {
     try {
-      const clientId = Number(req.params.id);
-
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: "Aucun fichier envoyé.",
+      const document =
+        await saveDocument({
+          clientId: req.params.id,
+          type: "passport",
+          file: req.file,
         });
-      }
-
-      const client = await prisma.client.findUnique({
-        where: {
-          id: clientId,
-        },
-      });
-
-      if (!client) {
-        return res.status(404).json({
-          success: false,
-          message: "Client introuvable.",
-        });
-      }
-
-      const filePath = `passports/${req.file.filename}`;
-
-      /* Garder l'ancien champ */
-
-      await prisma.client.update({
-        where: {
-          id: clientId,
-        },
-        data: {
-          passportFile: filePath,
-        },
-      });
-
-      /* Créer le document lié au client */
-
-      const document = await createDocument({
-        clientId,
-        type: "Passeport",
-        fileName: req.file.originalname,
-        filePath,
-      });
 
       res.status(201).json({
         success: true,
-        message: "Passeport enregistré.",
+        message:
+          "Passeport enregistré avec succès",
         document,
       });
     } catch (error) {
-      console.error("Erreur upload passeport :", error);
+      console.error(
+        "Erreur upload passeport :",
+        error
+      );
 
-      res.status(500).json({
+      res.status(
+        error.status || 500
+      ).json({
         success: false,
-        message: "Erreur lors de l'enregistrement du passeport.",
+        message:
+          error.message ||
+          "Erreur upload passeport",
       });
     }
   }
@@ -179,63 +225,35 @@ router.post(
 router.post(
   "/ticket/:id",
   uploadTicket.single("file"),
+
   async (req, res) => {
     try {
-      const clientId = Number(req.params.id);
-
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: "Aucun fichier envoyé.",
+      const document =
+        await saveDocument({
+          clientId: req.params.id,
+          type: "ticket",
+          file: req.file,
         });
-      }
-
-      const client = await prisma.client.findUnique({
-        where: {
-          id: clientId,
-        },
-      });
-
-      if (!client) {
-        return res.status(404).json({
-          success: false,
-          message: "Client introuvable.",
-        });
-      }
-
-      const filePath = `tickets/${req.file.filename}`;
-
-      /* Garder l'ancien champ */
-
-      await prisma.client.update({
-        where: {
-          id: clientId,
-        },
-        data: {
-          ticketFile: filePath,
-        },
-      });
-
-      /* Créer le document */
-
-      const document = await createDocument({
-        clientId,
-        type: "Billet avion",
-        fileName: req.file.originalname,
-        filePath,
-      });
 
       res.status(201).json({
         success: true,
-        message: "Billet enregistré.",
+        message:
+          "Billet enregistré avec succès",
         document,
       });
     } catch (error) {
-      console.error("Erreur upload billet :", error);
+      console.error(
+        "Erreur upload billet :",
+        error
+      );
 
-      res.status(500).json({
+      res.status(
+        error.status || 500
+      ).json({
         success: false,
-        message: "Erreur lors de l'enregistrement du billet.",
+        message:
+          error.message ||
+          "Erreur upload billet",
       });
     }
   }
@@ -248,63 +266,35 @@ router.post(
 router.post(
   "/visa/:id",
   uploadVisa.single("file"),
+
   async (req, res) => {
     try {
-      const clientId = Number(req.params.id);
-
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: "Aucun fichier envoyé.",
+      const document =
+        await saveDocument({
+          clientId: req.params.id,
+          type: "visa",
+          file: req.file,
         });
-      }
-
-      const client = await prisma.client.findUnique({
-        where: {
-          id: clientId,
-        },
-      });
-
-      if (!client) {
-        return res.status(404).json({
-          success: false,
-          message: "Client introuvable.",
-        });
-      }
-
-      const filePath = `visas/${req.file.filename}`;
-
-      /* Garder l'ancien champ */
-
-      await prisma.client.update({
-        where: {
-          id: clientId,
-        },
-        data: {
-          visaFile: filePath,
-        },
-      });
-
-      /* Créer le document */
-
-      const document = await createDocument({
-        clientId,
-        type: "Visa",
-        fileName: req.file.originalname,
-        filePath,
-      });
 
       res.status(201).json({
         success: true,
-        message: "Visa enregistré.",
+        message:
+          "Visa enregistré avec succès",
         document,
       });
     } catch (error) {
-      console.error("Erreur upload visa :", error);
+      console.error(
+        "Erreur upload visa :",
+        error
+      );
 
-      res.status(500).json({
+      res.status(
+        error.status || 500
+      ).json({
         success: false,
-        message: "Erreur lors de l'enregistrement du visa.",
+        message:
+          error.message ||
+          "Erreur upload visa",
       });
     }
   }
@@ -317,70 +307,38 @@ router.post(
 router.post(
   "/receipt/:id",
   uploadReceipt.single("file"),
+
   async (req, res) => {
     try {
-      const clientId = Number(req.params.id);
-
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: "Aucun fichier envoyé.",
+      const document =
+        await saveDocument({
+          clientId: req.params.id,
+          type: "receipt",
+          file: req.file,
         });
-      }
-
-      const client = await prisma.client.findUnique({
-        where: {
-          id: clientId,
-        },
-      });
-
-      if (!client) {
-        return res.status(404).json({
-          success: false,
-          message: "Client introuvable.",
-        });
-      }
-
-      const filePath = `receipts/${req.file.filename}`;
-
-      /* Garder l'ancien champ */
-
-      await prisma.client.update({
-        where: {
-          id: clientId,
-        },
-        data: {
-          receiptFile: filePath,
-        },
-      });
-
-      /* Créer le document */
-
-      const document = await createDocument({
-        clientId,
-        type: "Reçu",
-        fileName: req.file.originalname,
-        filePath,
-      });
 
       res.status(201).json({
         success: true,
-        message: "Reçu enregistré.",
+        message:
+          "Reçu enregistré avec succès",
         document,
       });
     } catch (error) {
-      console.error("Erreur upload reçu :", error);
+      console.error(
+        "Erreur upload reçu :",
+        error
+      );
 
-      res.status(500).json({
+      res.status(
+        error.status || 500
+      ).json({
         success: false,
-        message: "Erreur lors de l'enregistrement du reçu.",
+        message:
+          error.message ||
+          "Erreur upload reçu",
       });
     }
   }
 );
-
-/* =====================================================
-   EXPORT
-===================================================== */
 
 export default router;

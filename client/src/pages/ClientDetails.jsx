@@ -1,3 +1,9 @@
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
+const SERVER_URL =
+  API_URL.replace(/\/api$/, "");
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -221,16 +227,19 @@ function DocumentUpload({
         <div className="mb-4">
           <p className="text-green-600">{file}</p>
           <div className="flex gap-3 mt-3">
-            <a
-              href={`http://localhost:5000/uploads/${file}`}
+            
+             <a
+  href={`${SERVER_URL}/uploads/${file}`}
               target="_blank"
               rel="noreferrer"
               className="bg-green-600 text-white px-4 py-2 rounded-lg"
             >
-              Ouvrir
+
             </a>
+              Ouvrir
+            
             <a
-              href={`http://localhost:5000/uploads/${file}`}
+  href={`${SERVER_URL}/uploads/${file}`}
               download
               className="bg-gray-700 text-white px-4 py-2 rounded-lg"
             >
