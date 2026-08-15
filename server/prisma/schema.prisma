@@ -7,71 +7,209 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+// =====================================================
+// ROLE UTILISATEUR
+// =====================================================
+
 enum UserRole {
   ADMIN
   EMPLOYEE
 }
+
+
+// =====================================================
+// UTILISATEUR
+// =====================================================
 
 model User {
   id           Int      @id @default(autoincrement())
   fullName     String
   email        String   @unique
   passwordHash String
+  role         UserRole @default(EMPLOYEE)
   active       Boolean  @default(true)
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
 
+
+// =====================================================
+// CLIENT
+// =====================================================
+
 model Client {
   id Int @id @default(autoincrement())
 
-  fullName String
-  phone String?
-  whatsapp String?
-  email String?
-  address String?
-  nationality String?
-  birthDate DateTime?
+
+  // =========================
+  // INFORMATIONS PERSONNELLES
+  // =========================
+
+  fullName      String
+  phone         String?
+  whatsapp      String?
+  email         String?
+  address       String?
+  nationality   String?
+  birthDate     DateTime?
+
+
+  // =========================
+  // PASSEPORT
+  // =========================
+
   passportNumber String?
   passportExpiry DateTime?
-  passportFile String?
-  photoFile String?
-  visaFile String?
-  ticketFile String?
-  receiptFile String?
 
-  destination String
+
+  // =========================
+  // ANCIENS CHAMPS FICHIERS
+  // On les garde pour ne pas
+  // casser le code existant
+  // =========================
+
+  passportFile String?
+  photoFile    String?
+  visaFile     String?
+  ticketFile   String?
+  receiptFile  String?
+
+
+  // =========================
+  // VOYAGE
+  // =========================
+
+  destination   String
   departureDate DateTime
-  returnDate DateTime?
-  airline String?
-  flightNumber String?
-  ticketNumber String?
+  returnDate    DateTime?
+
+  airline       String?
+  flightNumber  String?
+  ticketNumber  String?
+
+
+  // =========================
+  // PAIEMENT
+  // =========================
+
   ticketPrice Float
-  amountPaid Float
-  remaining Float
+  amountPaid  Float
+  remaining   Float
+
+
+  // =========================
+  // STATUT
+  // =========================
+
   status String
-  notes String?
+  notes  String?
+
+
+  // =========================
+  // DATES
+  // =========================
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+
+  // =========================
+  // RESERVATION
+  // =========================
+
   reservationId Int?
+
   reservation Reservation? @relation(fields: [reservationId], references: [id])
+
+
+  // =========================
+  // DOCUMENTS
+  // =========================
+
+  documents Document[]
 }
+
+
+// =====================================================
+// DOCUMENT
+// =====================================================
+
+model Document {
+  id Int @id @default(autoincrement())
+
+
+  // =========================
+  // RELATION CLIENT
+  // =========================
+
+  clientId Int
+
+ client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // =========================
+  // DOCUMENT
+  // =========================
+
+  type String
+
+  fileName String
+
+  filePath String
+
+
+  // =========================
+  // DATE
+  // =========================
+
+  createdAt DateTime @default(now())
+
+
+  // =========================
+  // INDEX
+  // =========================
+
+  @@index([clientId])
+}
+
+
+// =====================================================
+// RESERVATION
+// =====================================================
 
 model Reservation {
   id Int @id @default(autoincrement())
 
-  title String
+
+  // =========================
+  // INFORMATIONS
+  // =========================
+
+  title       String
   destination String
+
   departureDate DateTime
-  returnDate DateTime?
-  airline String?
+  returnDate    DateTime?
+
+  airline      String?
   flightNumber String?
+
   hotel String?
+
   notes String?
 
+
+  // =========================
+  // DATE CREATION
+  // =========================
+
   createdAt DateTime @default(now())
+
+
+  // =========================
+  // CLIENTS
+  // =========================
 
   clients Client[]
 }
